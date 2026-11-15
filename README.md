@@ -10,10 +10,11 @@ Case data stays in this browser. The only outside request is the header check yo
 
 ## Design
 
-The palette has three hues only: white `#FFFFFF`, dark gray `#243038`, and teal `#0F6E6A`.
+The interface uses three hues: white `#FFFFFF`, dark gray `#243038`, and teal `#0F6E6A`.
 - Borders, quiet surfaces and muted text are mixes of those three.
 - Tailwind's default palette is removed in [`src/index.css`](src/index.css), so no other hue can appear.
-- Status, validation and priority are shown with words, weight and borders, never with red, green or amber.
+- Status, validation and priority are shown with words, weight and borders. Red, green and amber are not used, except for the remark beside each header under Report → Observations.
+- That remark uses dark green `#1B7A45` for an expected or noted value, dark amber `#9A6700` when the setting needs a look, and dark red `#B42318` when the technical severity is moderate. The wording is unchanged. Those three hues appear nowhere else.
 
 There are no images, icons, logos, background images or favicon, and no font files; the system font stack covers both languages.
 

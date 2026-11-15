@@ -90,12 +90,18 @@ const INIT = () => {
   );
 };
 
-/** Every computed colour must be white, dark gray, teal, or a mix of those. */
+/** Every computed colour must be white, dark gray, teal, or a mix of those.
+ *  Report observation remarks may also use these three traffic-light hues. */
 const PALETTE_CHECK = () => {
   const anchors = [
     [255, 255, 255],
     [36, 48, 56],
     [15, 110, 106],
+  ];
+  const remarks = [
+    [27, 122, 69],
+    [154, 103, 0],
+    [180, 35, 24],
   ];
   const parse = (value) => {
     const m = value.match(/rgba?\(([^)]+)\)/);
@@ -109,7 +115,12 @@ const PALETTE_CHECK = () => {
     const t = Math.max(0, Math.min(1, d.reduce((s, v, i) => s + v * (c[i] - p[i]), 0) / len));
     return Math.hypot(...c.map((v, i) => v - (p[i] + t * d[i]))) <= 4;
   };
-  const allowed = (c) => onSegment(c, anchors[0], anchors[1]) || onSegment(c, anchors[0], anchors[2]) || onSegment(c, anchors[1], anchors[2]);
+  const nearRemark = (c) => remarks.some((p) => Math.hypot(...c.map((v, i) => v - p[i])) <= 4);
+  const allowed = (c) =>
+    onSegment(c, anchors[0], anchors[1]) ||
+    onSegment(c, anchors[0], anchors[2]) ||
+    onSegment(c, anchors[1], anchors[2]) ||
+    nearRemark(c);
   const bad = new Set();
   const props = ['color', 'background-color', 'border-top-color', 'border-bottom-color', 'border-left-color', 'border-right-color', 'outline-color', 'accent-color'];
   for (const el of document.querySelectorAll('*')) {
@@ -127,7 +138,7 @@ const PALETTE_CHECK = () => {
 async function paletteOk(page, label) {
   const { bad, media } = await page.evaluate(PALETTE_CHECK);
   assert.equal(media, 0, `${label}: image or media elements present`);
-  assert.deepEqual(bad, [], `${label}: colours outside the white, dark gray and teal palette`);
+  assert.deepEqual(bad, [], `${label}: colours outside the white, dark gray and teal palette, apart from the three report-remark hues`);
 }
 
 async function noOverflow(page, label) {

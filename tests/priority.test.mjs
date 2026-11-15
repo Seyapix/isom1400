@@ -2,11 +2,27 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { getScenario, SCENARIOS } from '../src/domain/fixtures.ts';
 import { prioritise, SHORTLIST_LIMIT } from '../src/domain/priority.ts';
+import { remarkTone } from '../src/domain/report.ts';
 
 const ids = (list) => list.map((r) => r.finding.id);
 const harbour = getScenario('harbour-lantern').findings;
 const banyan = getScenario('banyan-neighbours').findings;
 const hillpath = getScenario('hillpath-reading').findings;
+
+test('report remarks are green for expected or noted, red for moderate, and amber otherwise', () => {
+  const byId = Object.fromEntries([...harbour, ...banyan, ...hillpath].map((f) => [f.id, f]));
+  assert.equal(remarkTone(byId['harbour-xcto']), 'ok');
+  assert.equal(remarkTone(byId['hillpath-hsts']), 'ok');
+  assert.equal(remarkTone({ configuration: 'noted', severity: 'none' }), 'ok');
+  assert.equal(remarkTone({ configuration: 'expected', severity: 'moderate' }), 'ok');
+  assert.equal(remarkTone(byId['harbour-csp']), 'alert');
+  assert.equal(remarkTone(byId['banyan-hsts']), 'alert');
+  assert.equal(remarkTone(byId['harbour-hsts']), 'caution');
+  assert.equal(remarkTone(byId['harbour-referrer']), 'caution');
+  assert.equal(remarkTone(byId['banyan-csp']), 'caution');
+  assert.equal(remarkTone(byId['banyan-xcto']), 'caution');
+  assert.equal(remarkTone(byId['banyan-referrer']), 'caution');
+});
 
 test('every fixture has four distinct observations in fixed check order', () => {
   for (const scenario of SCENARIOS) {

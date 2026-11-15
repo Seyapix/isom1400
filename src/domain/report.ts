@@ -3,7 +3,20 @@ import { formatDateTime } from '../i18n/index.ts';
 import { prioritise } from './priority.ts';
 import type { Prioritisation, RankedFinding } from './priority.ts';
 import { CHECK_HEADERS, CHECK_ORDER } from './types.ts';
-import type { CaseRecord, Lang, Scenario } from './types.ts';
+import type { CaseRecord, Finding, Lang, Scenario } from './types.ts';
+
+/** Traffic-light tone for the configuration remark beside a report observation. */
+export type RemarkTone = 'ok' | 'caution' | 'alert';
+
+/**
+ * Expected and noted values are fine. A moderate severity is a confirmed concern.
+ * Anything else needs a look, including an absent header, which is not treated as a flaw by itself.
+ */
+export function remarkTone(finding: Pick<Finding, 'configuration' | 'severity'>): RemarkTone {
+  if (finding.configuration === 'expected' || finding.configuration === 'noted') return 'ok';
+  if (finding.severity === 'moderate') return 'alert';
+  return 'caution';
+}
 
 export function reasonLines(d: Dictionary, ranked: RankedFinding): string[] {
   if (ranked.finding.id.startsWith('live-')) return [d.reasons.liveQuestion];

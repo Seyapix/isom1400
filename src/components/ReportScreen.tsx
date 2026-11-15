@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { scenarioForCase } from '../domain/live.ts';
-import { buildCopyText, buildRequest, presentedFindings, scopeText } from '../domain/report.ts';
+import { buildCopyText, buildRequest, presentedFindings, remarkTone, scopeText } from '../domain/report.ts';
 import { CHECK_HEADERS, draftKey } from '../domain/types.ts';
 import { TEXT_MAX } from '../domain/validation.ts';
 import { formatDate, formatDateTime } from '../i18n/index.ts';
@@ -126,7 +126,9 @@ export function ReportScreen() {
             <li key={finding.id} className="border-b border-line py-3 keep-together">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h3 className="text-base">{CHECK_HEADERS[finding.check]}</h3>
-                <span className="text-[0.875rem] font-semibold text-muted">{d.configuration[finding.configuration]}</span>
+                <span className={`remark-${remarkTone(finding)} text-[0.875rem] font-semibold`}>
+                  {d.configuration[finding.configuration]}
+                </span>
               </div>
               <div className="mt-1.5">
                 <Evidence ranked={{ finding, matchedActivities: [] }} />

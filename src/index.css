@@ -209,6 +209,26 @@
     color: var(--color-teal);
   }
 
+  /* Report observation remarks only. The rest of the interface stays white, ink and teal. */
+  .remark-ok,
+  .remark-caution,
+  .remark-alert {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .remark-ok {
+    color: #1b7a45;
+  }
+
+  .remark-caution {
+    color: #9a6700;
+  }
+
+  .remark-alert {
+    color: #b42318;
+  }
+
   .evidence {
     display: block;
     overflow-x: auto;
