@@ -1,10 +1,12 @@
 import type { Dictionary } from '../i18n/en.ts';
 import { formatDateTime } from '../i18n/index.ts';
-import type { RankedFinding } from './priority.ts';
+import { prioritise } from './priority.ts';
+import type { Prioritisation, RankedFinding } from './priority.ts';
 import { CHECK_HEADERS, CHECK_ORDER } from './types.ts';
 import type { CaseRecord, Lang, Scenario } from './types.ts';
 
 export function reasonLines(d: Dictionary, ranked: RankedFinding): string[] {
+  if (ranked.finding.id.startsWith('live-')) return [d.reasons.liveQuestion];
   const { finding, matchedActivities } = ranked;
   const lines = [
     matchedActivities.length > 0
@@ -17,6 +19,22 @@ export function reasonLines(d: Dictionary, ranked: RankedFinding): string[] {
   return lines;
 }
 
+/** Live questions are shown only when the charity can change the site. A platform or an unknown host gets no shortlist. */
+export function presentedFindings(c: CaseRecord, scenario: Scenario): Prioritisation {
+  if (scenario.source === 'live' && c.siteControl !== 'charity') {
+    return {
+      priorities: [],
+      others: scenario.findings.map((finding) => ({ finding, matchedActivities: [] })),
+      overflow: 0,
+    };
+  }
+  return prioritise(scenario.findings, scenario.source === 'live' ? [] : c.activities);
+}
+
+export function charityCanAsk(c: CaseRecord, scenario: Scenario): boolean {
+  return scenario.source === 'fixture' || c.siteControl === 'charity';
+}
+
 /** The generated provider request. Conditional wording throughout. */
 export function buildRequest(
   d: Dictionary,
@@ -25,17 +43,25 @@ export function buildRequest(
   scenario: Scenario,
   priorities: readonly RankedFinding[],
 ): string {
+  if (scenario.source === 'live' && c.siteControl === 'platform') return d.request.platform;
+  if (scenario.source === 'live' && c.siteControl !== 'charity') return d.request.unsure;
   const intro = scenario.source === 'live' ? d.request.introLive : d.request.introFixture;
   const parts = [d.request.greeting, '', intro, ''];
   if (priorities.length === 0) {
-    parts.push(d.request.none, '');
+    parts.push(scenario.source === 'live' ? d.request.noneLive : d.request.none, '');
   } else {
     priorities.forEach((p, i) => {
       const text = p.finding.text[lang];
       parts.push(d.request.item(i + 1, CHECK_HEADERS[p.finding.check]), text.meaning, text.request, '');
     });
   }
-  parts.push(d.request.testing(d.list(c.activities.map((a) => d.activities[a]))), '', d.request.closing, c.displayName);
+  if (!(scenario.source === 'live' && priorities.length === 0)) {
+    parts.push(
+      scenario.source === 'live' ? d.request.testingLive : d.request.testing(d.list(c.activities.map((a) => d.activities[a]))),
+      '',
+    );
+  }
+  parts.push(d.request.closing, c.displayName);
   return parts.join('\n');
 }
 

@@ -1,5 +1,5 @@
-import { ACTIVITIES, CHANGE_MANAGERS, LANGS, SUPPORT_LEVELS } from './types.ts';
-import type { ActionRecord, Activity, ChangeManager, Lang, SupportLevel } from './types.ts';
+import { ACTIVITIES, CHANGE_MANAGERS, LANGS, SITE_CONTROLS, SUPPORT_LEVELS } from './types.ts';
+import type { ActionRecord, Activity, ChangeManager, Lang, SiteControl, SupportLevel } from './types.ts';
 
 export const NAME_MAX = 80;
 export const URL_MAX = 200;
@@ -33,17 +33,27 @@ export interface IntakeForm {
   exampleUrl: string;
   language: Lang | '';
   activities: Activity[];
+  siteControl: SiteControl | '';
   changeManager: ChangeManager | '';
   support: SupportLevel | '';
   acknowledged: boolean;
 }
 
-export type IntakeField = 'displayName' | 'exampleUrl' | 'language' | 'activities' | 'changeManager' | 'support' | 'acknowledged';
+export type IntakeField =
+  | 'displayName'
+  | 'exampleUrl'
+  | 'siteControl'
+  | 'language'
+  | 'activities'
+  | 'changeManager'
+  | 'support'
+  | 'acknowledged';
 export type IntakeError =
   | 'nameRequired'
   | 'nameTooLong'
   | UrlError
   | 'languageRequired'
+  | 'siteControlRequired'
   | 'activitiesRequired'
   | 'changeManagerRequired'
   | 'supportRequired'
@@ -52,6 +62,7 @@ export type IntakeError =
 export const INTAKE_FIELD_ORDER: readonly IntakeField[] = [
   'displayName',
   'exampleUrl',
+  'siteControl',
   'language',
   'activities',
   'changeManager',
@@ -67,6 +78,7 @@ export function validateIntake(form: IntakeForm): Partial<Record<IntakeField, In
   const urlError = validateExampleUrl(form.exampleUrl);
   if (urlError) errors.exampleUrl = urlError;
   if (!LANGS.includes(form.language as Lang)) errors.language = 'languageRequired';
+  if (!SITE_CONTROLS.includes(form.siteControl as SiteControl)) errors.siteControl = 'siteControlRequired';
   if (form.activities.length === 0 || !form.activities.every((a) => ACTIVITIES.includes(a))) {
     errors.activities = 'activitiesRequired';
   }

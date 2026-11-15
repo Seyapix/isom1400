@@ -32,6 +32,7 @@ const liveCase = {
   displayName: 'Real Charity',
   exampleUrl: 'https://charity.example',
   activities: ['donations'],
+  siteControl: 'charity',
   changeManager: 'provider',
   support: 'none',
   liveCheck: {
@@ -100,5 +101,20 @@ test('a live request and copy describe the check rather than a fictional sample'
     const copied = buildCopyText(d, lang, liveCase, scenario, draft);
     assert.ok(copied.includes('https://www.charity.example/'), lang);
     assert.match(copied, lang === 'en' ? /live header check/ : /即時標頭檢查/);
+    assert.match(draft, lang === 'en' ? /not a ranking/ : /並非網站最大風險的排名/);
+    assert.doesNotMatch(draft, lang === 'en' ? /Donations pages/ : /捐款相關頁面/);
+  }
+});
+
+test('a platform or unknown host does not draft a letter about our website', () => {
+  const scenario = liveScenario(liveCase);
+  const { priorities } = prioritise(scenario.findings, liveCase.activities);
+  for (const control of ['platform', 'unsure']) {
+    for (const lang of ['en', 'zh-HK']) {
+      const d = DICTIONARIES[lang];
+      const draft = buildRequest(d, lang, { ...liveCase, siteControl: control }, scenario, priorities);
+      assert.equal(draft, control === 'platform' ? d.request.platform : d.request.unsure);
+      assert.doesNotMatch(draft, /our website|our site|Dear website provider|我們的網站|我們網站|網站服務供應商您好/);
+    }
   }
 });

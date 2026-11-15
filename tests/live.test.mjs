@@ -30,10 +30,11 @@ test('HSTS is classified from the final address and max-age', () => {
 
 test('CSP distinguishes report-only, absent, permissive and restrictive policies', () => {
   assert.equal(classifyCsp(null, null), 'absent');
-  assert.equal(classifyCsp(null, "default-src 'self'"), 'reportOnly');
+  assert.equal(classifyCsp(null, "default-src 'self'"), 'reportOnlyScripts');
   assert.equal(classifyCsp("default-src 'self'", null), 'ok');
   assert.equal(classifyCsp("script-src 'self' https://pay.example; object-src 'none'", "default-src 'none'"), 'ok');
-  assert.equal(classifyCsp("frame-ancestors 'none'", null), 'permissive');
+  assert.equal(classifyCsp("frame-ancestors 'none'", null), 'noScript');
+  assert.equal(classifyCsp(null, "frame-ancestors 'self' https://example.test"), 'reportOnlyOther');
   assert.equal(classifyCsp("default-src 'self'; script-src 'self' 'unsafe-inline'", null), 'permissive');
   assert.equal(classifyCsp("script-src 'self' 'unsafe-inline' 'nonce-abc123'", null), 'ok');
   assert.equal(classifyCsp('script-src https:', null), 'permissive');
@@ -87,6 +88,38 @@ test('live findings carry literal header lines and feed the same priority rules'
   );
   assert.deepEqual(result.others.map((p) => p.finding.id), ['live-xcto']);
   assert.match(findings[0].text.en.pageContext, /www\.charity\.example.*after 1 redirect/);
+  assert.match(findings[0].text.en.pageContext, /not a donation, sign-up, or payment flow/);
+  assert.ok(findings.every((f) => f.activities.length === 0));
+  assert.match(findings[1].text.en.meaning, /does not show that reports are sent/);
+  assert.doesNotMatch(findings[1].text.en.meaning, /reports are reviewed|reports are being sent/);
+});
+
+test('a platform-shaped response records the headers and asks nothing', () => {
+  const findings = liveFindings(
+    check({
+      hsts: 'max-age=31536000; includeSubDomains',
+      cspReportOnly: "frame-ancestors 'self' https://example.test",
+    }),
+  );
+  assert.equal(findings[0].configuration, 'expected');
+  assert.match(findings[0].text.en.meaning, /one year/);
+  assert.doesNotMatch(findings[0].text.en.meaning, /at least a day/);
+  assert.match(findings[0].text['zh-HK'].meaning, /一年/);
+  assert.equal(findings[1].configuration, 'noted');
+  assert.equal(findings[1].reviewRequired, false);
+  assert.match(findings[1].text.en.meaning, /does not restrict scripts/);
+  assert.match(findings[1].text.en.meaning, /embed the page/);
+  assert.match(findings[1].text.en.meaning, /does not show that reports are sent/);
+  assert.doesNotMatch(findings[1].text.en.request, /enforce/);
+  assert.equal(findings[2].configuration, 'absent');
+  assert.equal(findings[2].reviewRequired, false);
+  assert.match(findings[2].text.en.meaning, /does not show an exploitable flaw/);
+  assert.equal(findings[3].reviewRequired, false);
+  assert.match(findings[3].text.en.meaning, /strict-origin-when-cross-origin/);
+  assert.match(findings[3].text.en.meaning, /not an urgent fix/);
+  for (const activities of [['donations'], ['information'], ['donations', 'volunteer']]) {
+    assert.equal(prioritise(findings, activities).priorities.length, 0, activities.join(','));
+  }
 });
 
 test('a fully configured site gives no priorities', () => {

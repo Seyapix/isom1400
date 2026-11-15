@@ -10,6 +10,10 @@ export const CHANGE_MANAGERS: readonly ChangeManager[] = ['provider', 'staff', '
 export type SupportLevel = 'none' | 'occasional' | 'contract' | 'inhouse';
 export const SUPPORT_LEVELS: readonly SupportLevel[] = ['none', 'occasional', 'contract', 'inhouse'];
 
+/** Whether the charity can change the checked website. Never inferred from the address. */
+export type SiteControl = 'charity' | 'platform' | 'unsure';
+export const SITE_CONTROLS: readonly SiteControl[] = ['charity', 'platform', 'unsure'];
+
 export type CheckId = 'hsts' | 'csp' | 'xcto' | 'referrer';
 /** Fixed check order, used as the final ranking key before stable IDs. */
 export const CHECK_ORDER: readonly CheckId[] = ['hsts', 'csp', 'xcto', 'referrer'];
@@ -21,8 +25,8 @@ export const CHECK_HEADERS: Record<CheckId, string> = {
   referrer: 'Referrer-Policy',
 };
 
-/** expected: recognised, suitable value. concern: an explicit setting worth reviewing. absent: no header in the sample. */
-export type Configuration = 'expected' | 'concern' | 'absent';
+/** expected: recognised, suitable value. concern: an explicit setting worth a question. absent: no header. noted: present, and not a question. */
+export type Configuration = 'expected' | 'concern' | 'absent' | 'noted';
 
 /** Qualitative only. A missing header alone never establishes an exploitable weakness. */
 export type Severity = 'none' | 'low' | 'moderate' | 'undetermined';
@@ -106,6 +110,8 @@ export interface CaseRecord {
   exampleUrl: string;
   language: Lang;
   activities: Activity[];
+  /** Who can change the website named above. Missing older records load as `unsure`. */
+  siteControl: SiteControl;
   changeManager: ChangeManager;
   support: SupportLevel;
   acknowledged: true;
@@ -141,7 +147,7 @@ export type Screen = 'intake' | 'findings' | 'report' | 'followup';
 export const SCREENS: readonly Screen[] = ['intake', 'findings', 'report', 'followup'];
 
 export interface AppState {
-  version: 2;
+  version: 3;
   uiLanguage: Lang;
   screen: Screen;
   case: CaseRecord | null;

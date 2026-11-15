@@ -30,6 +30,7 @@ const caseRecord = {
   exampleUrl: 'https://charity.example',
   language: 'en',
   activities: ['donations'],
+  siteControl: 'charity',
   changeManager: 'provider',
   support: 'none',
   acknowledged: true,
@@ -102,7 +103,7 @@ test('records for another case, unknown scenarios or unknown findings are droppe
 test('unreadable, wrong-version or invalid data is reported and replaced by an empty workspace', () => {
   const bad = [
     '{not json',
-    JSON.stringify({ ...stateWith(), version: 3 }),
+    JSON.stringify({ ...stateWith(), version: 4 }),
     JSON.stringify(stateWith({ case: { ...caseRecord, liveCheck: { ...liveCheck, status: 'ok' } } })),
     JSON.stringify(stateWith({ case: { ...caseRecord, liveCheck: { ...liveCheck, headers: { hsts: 1 } } } })),
     JSON.stringify(stateWith({ case: { ...caseRecord, exampleUrl: 'https://u:p@charity.example' } })),
@@ -145,12 +146,22 @@ test('unavailable or failing storage falls back to memory', () => {
   assert.equal(adapter.save(stateWith()), false);
 });
 
+test('a version 2 case with no control answer loads as not sure', () => {
+  const { siteControl: _omit, ...v2Case } = caseRecord;
+  const parsed = parseState(JSON.stringify({ ...stateWith({ case: v2Case }), version: 2 }));
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.state.version, 3);
+  assert.equal(parsed.state.case.siteControl, 'unsure');
+  assert.deepEqual(parsed.state.case.liveCheck, null);
+});
+
 test('a version 1 state migrates with no live check', () => {
   const { liveCheck: _omit, ...v1Case } = caseRecord;
   const parsed = parseState(JSON.stringify({ ...stateWith({ case: v1Case }), version: 1 }));
   assert.equal(parsed.ok, true);
-  assert.equal(parsed.state.version, 2);
+  assert.equal(parsed.state.version, 3);
   assert.equal(parsed.state.case.liveCheck, null);
+  assert.equal(parsed.state.case.siteControl, 'charity');
   assert.deepEqual(Object.keys(parsed.state.actions), ['case-1|harbour-lantern|harbour-csp']);
 });
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { withoutLive } from '../domain/live.ts';
-import { ACTIVITIES, CHANGE_MANAGERS, LANGS, LIVE_SCENARIO_ID, SUPPORT_LEVELS } from '../domain/types.ts';
+import { ACTIVITIES, CHANGE_MANAGERS, LANGS, LIVE_SCENARIO_ID, SITE_CONTROLS, SUPPORT_LEVELS } from '../domain/types.ts';
 import type { Activity, CaseRecord } from '../domain/types.ts';
 import { INTAKE_FIELD_ORDER, NAME_MAX, URL_MAX, validateIntake } from '../domain/validation.ts';
 import type { IntakeError, IntakeField, IntakeForm } from '../domain/validation.ts';
@@ -14,6 +14,7 @@ type Errors = Partial<Record<IntakeField, IntakeError>>;
 const FIRST_INPUT: Record<IntakeField, string> = {
   displayName: 'intake-displayName',
   exampleUrl: 'intake-exampleUrl',
+  siteControl: 'intake-siteControl-0',
   language: 'intake-language-0',
   activities: 'intake-activities-0',
   changeManager: 'intake-changeManager-0',
@@ -37,11 +38,21 @@ export function IntakeScreen() {
           exampleUrl: existing.exampleUrl,
           language: existing.language,
           activities: [...existing.activities],
+          siteControl: existing.siteControl,
           changeManager: existing.changeManager,
           support: existing.support,
           acknowledged: true,
         }
-      : { displayName: '', exampleUrl: '', language: lang, activities: [], changeManager: '', support: '', acknowledged: false },
+      : {
+          displayName: '',
+          exampleUrl: '',
+          language: lang,
+          activities: [],
+          siteControl: '',
+          changeManager: '',
+          support: '',
+          acknowledged: false,
+        },
   );
   const [errors, setErrors] = useState<Errors>({});
   const [submitted, setSubmitted] = useState(false);
@@ -75,18 +86,35 @@ export function IntakeScreen() {
       exampleUrl: form.exampleUrl.trim(),
       language: form.language as CaseRecord['language'],
       activities: ACTIVITIES.filter((a) => form.activities.includes(a)),
+      siteControl: form.siteControl as CaseRecord['siteControl'],
       changeManager: form.changeManager as CaseRecord['changeManager'],
       support: form.support as CaseRecord['support'],
     };
     if (existing) {
       update((prev) => {
-        if (!prev.case || prev.case.exampleUrl === fields.exampleUrl) {
-          return { ...prev, uiLanguage: fields.language, case: prev.case && { ...prev.case, ...fields } };
-        }
+        if (!prev.case) return prev;
+        const urlChanged = prev.case.exampleUrl !== fields.exampleUrl;
+        const controlChanged = prev.case.siteControl !== fields.siteControl;
+        const base = urlChanged ? withoutLive(prev, prev.case.id) : prev;
+        const liveDraft = `${prev.case.id}|${LIVE_SCENARIO_ID}|`;
+        const drafts =
+          controlChanged && !urlChanged
+            ? Object.fromEntries(Object.entries(base.drafts).filter(([key]) => !key.startsWith(liveDraft)))
+            : base.drafts;
         return {
-          ...withoutLive(prev, prev.case.id),
+          ...base,
+          drafts,
           uiLanguage: fields.language,
-          case: { ...prev.case, ...fields, liveCheck: null, scenarioId: prev.case.scenarioId === LIVE_SCENARIO_ID ? null : prev.case.scenarioId },
+          case: {
+            ...prev.case,
+            ...fields,
+            ...(urlChanged
+              ? {
+                  liveCheck: null,
+                  scenarioId: prev.case.scenarioId === LIVE_SCENARIO_ID ? null : prev.case.scenarioId,
+                }
+              : {}),
+          },
         };
       });
       setMessage(DICTIONARIES[fields.language].intake.saved);
@@ -162,6 +190,27 @@ export function IntakeScreen() {
           <FieldError id="intake-exampleUrl-error" message={errorText('exampleUrl')} />
         </div>
 
+        <ChoiceGroup
+          legend={d.intake.siteControl}
+          hint={d.intake.siteControlHint}
+          name="siteControl"
+          error={errorText('siteControl')}
+        >
+          {SITE_CONTROLS.map((value, i) => (
+            <Choice
+              key={value}
+              id={`intake-siteControl-${i}`}
+              type="radio"
+              name="siteControl"
+              checked={form.siteControl === value}
+              invalid={Boolean(errors.siteControl)}
+              onChange={() => set('siteControl', value)}
+            >
+              {d.siteControl[value]}
+            </Choice>
+          ))}
+        </ChoiceGroup>
+
         <ChoiceGroup legend={d.intake.language} name="language" error={errorText('language')}>
           {LANGS.map((code, i) => (
             <Choice
@@ -202,7 +251,12 @@ export function IntakeScreen() {
           ))}
         </ChoiceGroup>
 
-        <ChoiceGroup legend={d.intake.changeManager} name="changeManager" error={errorText('changeManager')}>
+        <ChoiceGroup
+          legend={d.intake.changeManager}
+          hint={d.intake.changeManagerHint}
+          name="changeManager"
+          error={errorText('changeManager')}
+        >
           {CHANGE_MANAGERS.map((value, i) => (
             <Choice
               key={value}

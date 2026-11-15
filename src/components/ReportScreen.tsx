@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { scenarioForCase } from '../domain/live.ts';
-import { prioritise } from '../domain/priority.ts';
-import { buildCopyText, buildRequest, scopeText } from '../domain/report.ts';
+import { buildCopyText, buildRequest, presentedFindings, scopeText } from '../domain/report.ts';
 import { CHECK_HEADERS, draftKey } from '../domain/types.ts';
 import { TEXT_MAX } from '../domain/validation.ts';
 import { formatDate, formatDateTime } from '../i18n/index.ts';
@@ -39,7 +38,9 @@ export function ReportScreen() {
     );
   }
 
-  const { priorities } = prioritise(scenario.findings, caseRecord.activities);
+  const { priorities } = presentedFindings(caseRecord, scenario);
+  const live = scenario.source === 'live';
+  const noteOnly = live && caseRecord.siteControl !== 'charity';
   const key = draftKey(caseRecord.id, scenario.id, lang);
   const stored = state.drafts[key];
   const draft = stored ?? buildRequest(d, lang, caseRecord, scenario, priorities);
@@ -88,6 +89,7 @@ export function ReportScreen() {
                 ),
               },
               { term: d.report.activities, value: d.list(caseRecord.activities.map((a) => d.activities[a])) },
+              { term: d.report.siteControl, value: d.siteControl[caseRecord.siteControl] },
               {
                 term: d.report.scenario,
                 value:
@@ -110,6 +112,7 @@ export function ReportScreen() {
       </Section>
 
       <Section id="limitations" title={d.report.limitations}>
+        {scenario.source === 'fixture' && <p className="mb-3">{d.report.fixtureAssumesControl}</p>}
         <ul className="list-disc pl-5 space-y-1">
           {(scenario.source === 'live' ? d.report.limitationsLive : d.report.limitationsFixture).map((item) => (
             <li key={item}>{item}</li>
@@ -134,14 +137,22 @@ export function ReportScreen() {
         </ul>
       </Section>
 
-      <Section id="report-priorities" title={d.report.priorities}>
+      <Section id="report-priorities" title={live ? d.findings.questionsHeading : d.report.priorities}>
         {priorities.length === 0 ? (
-          <EmptyState>{d.report.noPriorities}</EmptyState>
+          <EmptyState>
+            {live
+              ? caseRecord.siteControl === 'platform'
+                ? d.findings.platformNone
+                : caseRecord.siteControl === 'unsure'
+                  ? d.findings.unsureNone
+                  : d.findings.noLiveQuestions
+              : d.report.noPriorities}
+          </EmptyState>
         ) : (
           <ol className="space-y-3">
             {priorities.map((ranked, index) => (
               <li key={ranked.finding.id} className="panel print-plain keep-together">
-                <p className="label">{d.findings.priorityLabel(index + 1)}</p>
+                <p className="label">{live ? d.findings.questionLabel : d.findings.priorityLabel(index + 1)}</p>
                 <h3 className="mt-1 text-base">{CHECK_HEADERS[ranked.finding.check]}</h3>
                 <p className="mt-1.5">{ranked.finding.text[lang].meaning}</p>
                 <p className="mt-1.5 text-ink-soft">{ranked.finding.text[lang].request}</p>
@@ -151,13 +162,13 @@ export function ReportScreen() {
         )}
       </Section>
 
-      <Section id="request" title={d.report.request}>
+      <Section id="request" title={noteOnly ? d.report.note : d.report.request}>
         <p id="request-hint" className="hint no-print -mt-1 mb-3">
-          {d.report.requestHint}
+          {noteOnly ? d.report.noteHint : d.report.requestHint}
         </p>
         <div className="flex items-baseline justify-between gap-3 no-print">
           <label htmlFor="request-draft" className="font-semibold">
-            {d.report.requestLabel}
+            {noteOnly ? d.report.noteLabel : d.report.requestLabel}
           </label>
           <span className={`status ${edited ? '' : 'status-teal'}`}>{edited ? d.report.edited : d.report.generated}</span>
         </div>
@@ -175,7 +186,7 @@ export function ReportScreen() {
 
         <div className="mt-4 flex flex-wrap gap-3 no-print">
           <button type="button" className="btn btn-primary" onClick={copyRequest}>
-            {d.report.copy}
+            {noteOnly ? d.report.copyNote : d.report.copy}
           </button>
           <button type="button" className="btn btn-secondary" onClick={() => window.print()}>
             {d.report.print}
@@ -186,7 +197,7 @@ export function ReportScreen() {
         </div>
         <div className="mt-3 no-print">
           <LiveMessage
-            message={copy.kind === 'copied' ? d.report.copied : copy.kind === 'failed' ? d.report.copyFailed : null}
+            message={copy.kind === 'copied' ? (noteOnly ? d.report.copiedNote : d.report.copied) : copy.kind === 'failed' ? d.report.copyFailed : null}
           />
         </div>
         {copy.kind === 'failed' && (

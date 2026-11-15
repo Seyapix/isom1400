@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { emptyAction, isOutstanding, nextStepKey, normaliseAction } from '../domain/followup.ts';
 import { scenarioForCase } from '../domain/live.ts';
-import { prioritise } from '../domain/priority.ts';
 import type { RankedFinding } from '../domain/priority.ts';
+import { charityCanAsk, presentedFindings } from '../domain/report.ts';
 import { ACTION_STATUSES, actionKey, CHECK_HEADERS, handoverKey, RECHECK_OUTCOMES } from '../domain/types.ts';
 import type { ActionRecord, ActionStatus, CaseRecord, HandoverRecord, RecheckOutcome } from '../domain/types.ts';
 import { ACTION_FIELD_ORDER, localIsoDate, TEXT_MAX, validateAction } from '../domain/validation.ts';
@@ -52,11 +52,15 @@ export function FollowUpScreen() {
     );
   }
 
-  const { priorities, others } = prioritise(scenario.findings, caseRecord.activities);
-  const tracked: Tracked[] = [
-    ...priorities.map((ranked, i) => ({ ranked, priority: i + 1 })),
-    ...others.filter((r) => r.finding.reviewRequired).map((ranked) => ({ ranked, priority: null })),
-  ].map((t) => {
+  const asking = charityCanAsk(caseRecord, scenario);
+  const { priorities, others } = presentedFindings(caseRecord, scenario);
+  const tracked: Tracked[] = (asking
+    ? [
+        ...priorities.map((ranked, i) => ({ ranked, priority: i + 1 })),
+        ...others.filter((r) => r.finding.reviewRequired).map((ranked) => ({ ranked, priority: null })),
+      ]
+    : []
+  ).map((t) => {
     const key = actionKey(caseRecord.id, scenario.id, t.ranked.finding.id);
     return { ...t, key, saved: state.actions[key] };
   });
@@ -75,7 +79,13 @@ export function FollowUpScreen() {
           {d.followup.actionsHeading}
         </h2>
         {tracked.length === 0 ? (
-          <EmptyState>{d.followup.noActions}</EmptyState>
+          <EmptyState>
+            {scenario.source === 'live' && caseRecord.siteControl === 'platform'
+              ? d.followup.platformNone
+              : scenario.source === 'live' && caseRecord.siteControl !== 'charity'
+                ? d.followup.unsureNone
+                : d.followup.noActions}
+          </EmptyState>
         ) : (
           <div className="space-y-5">
             {tracked.map((t) => (
@@ -145,7 +155,13 @@ function ActionEditor({ tracked, defaultRole }: { tracked: Tracked; defaultRole:
     <form noValidate onSubmit={onSubmit} className="panel" data-action-for={ranked.finding.id}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="label">{priority ? d.followup.priorityTag(priority) : d.followup.otherTag}</p>
+          <p className="label">
+            {ranked.finding.id.startsWith('live-')
+              ? d.followup.questionTag
+              : priority
+                ? d.followup.priorityTag(priority)
+                : d.followup.otherTag}
+          </p>
           <h3 className="mt-1 text-lg">{CHECK_HEADERS[ranked.finding.check]}</h3>
         </div>
         <span className="status" data-saved-status>

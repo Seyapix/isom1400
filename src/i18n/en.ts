@@ -57,6 +57,11 @@ export const en = {
     contract: 'A provider or agency on contract',
     inhouse: 'Staff with website access',
   },
+  siteControl: {
+    charity: 'Yes. The charity, or a provider it chooses, can change it.',
+    platform: 'No. It is a page on a platform the charity does not control.',
+    unsure: 'Not sure.',
+  },
   nextSteps: {
     providerDirected: 'Send the provider request and wait for their advice before anything changes.',
     contract: 'Ask the contracted provider, and confirm whether the work is within the agreed scope.',
@@ -66,6 +71,7 @@ export const en = {
     expected: 'Expected value',
     concern: 'Setting to review',
     absent: 'Header absent',
+    noted: 'Noted',
   },
   severity: {
     none: 'No concern in this evidence',
@@ -79,7 +85,8 @@ export const en = {
   intake: {
     title: 'Charity intake',
     intro: 'Record a charity and how its website is looked after. Next, check the address’s security headers or use a fictional example.',
-    editIntro: 'Update the intake at any time. Changing activities updates the priorities; saved drafts and actions are kept.',
+    editIntro:
+      'Update the intake at any time. Changing activities re-ranks a fictional example only. It does not make a live check specific to those activities. Who can change the website decides whether a change request is drafted.',
     displayName: 'Fictional charity name',
     displayNameHint: 'Use an invented name. It is shown as plain text.',
     exampleUrl: 'Example website address',
@@ -87,8 +94,12 @@ export const en = {
       'Use an address you have permission to check, or a reserved example such as https://charity.example. On Findings it can be checked from this computer; it is never opened as a page.',
     language: 'Preferred language',
     activities: 'What the website is used for',
-    activitiesHint: 'Select all that apply.',
+    activitiesHint: 'Select all that apply. For a live check, this does not change which page is fetched.',
+    siteControl: 'Can the charity change this website?',
+    siteControlHint:
+      'This decides whether the report drafts a change request. It is not guessed from the address.',
     changeManager: 'Who makes changes to the website?',
+    changeManagerHint: 'Used when the charity can change the site. It does not apply to a platform’s headers.',
     support: 'Technical support available',
     acknowledgement: 'Acknowledgement',
     ack: 'I understand this demo uses fictional sample data, and that any future review of a live website would need separate permission and an agreed scope.',
@@ -107,6 +118,7 @@ export const en = {
     urlScheme: 'Only http:// and https:// addresses are accepted.',
     urlCredentials: 'Remove the user name or password from the address. Never include sign-in details in a link.',
     languageRequired: 'Choose a preferred language.',
+    siteControlRequired: 'Choose whether the charity can change this website.',
     activitiesRequired: 'Select at least one website activity.',
     changeManagerRequired: 'Choose who makes changes to the website.',
     supportRequired: 'Choose the technical support available.',
@@ -119,6 +131,7 @@ export const en = {
     charity: 'Charity',
     exampleUrl: 'Address (shown as text, never opened as a page)',
     activities: 'Selected activities',
+    siteControl: 'Who can change the website',
     owner: 'Who makes changes',
     support: 'Technical support',
     scenarioLegend: 'Observations to use',
@@ -161,7 +174,17 @@ export const en = {
     },
     prioritiesHeading: 'Priorities',
     prioritiesIntro: 'Up to three observations to raise first, with the reason each was selected.',
+    questionsHeading: 'Questions this response can support',
+    questionsIntro:
+      'Only settings this one response gives a reason to ask about. The order is not a ranking of the website’s biggest risks, and selecting an activity does not mean that activity was checked.',
+    questionLabel: 'Question',
     noPriorities: 'Nothing here needs follow-up for the selected activities. The evidence is listed below for reference.',
+    noLiveQuestions:
+      'This response does not support a change request. The observations below are a record of the check, not a list of flaws.',
+    platformNone:
+      'These are the platform’s settings. The charity cannot change them, and this check does not show that the platform is unsafe. Nothing here is raised as a change.',
+    unsureNone:
+      'Confirm who can change this website before treating any setting as the charity’s to fix. Nothing here is raised as a change.',
     othersHeading: (n: number) => `Other observations (${n})`,
     othersIntro: 'Observations outside the shortlist keep their full evidence and limitations.',
     overflow: (n: number) =>
@@ -174,6 +197,10 @@ export const en = {
     outsideShortlist: 'Needs review · outside shortlist',
     routine: 'Routine · no follow-up',
     siteWide: 'Site-wide; not tied to one activity',
+    liveNotActivity: 'Not tied to a selected activity. This check did not open donation, sign-up, or payment pages.',
+    platformRequest:
+      'No request is drafted. These settings belong to the platform, not to a website the charity can change.',
+    unsureRequest: 'No request is drafted until someone confirms who can change this website.',
     absentEvidence: (header: string) => `No ${header} header in the response.`,
     toReport: 'Continue to provider report',
     fields: {
@@ -198,6 +225,8 @@ export const en = {
     concern: 'An explicit setting to review, which ranks before absent headers.',
     absent: 'The header is absent from the response, which ranks after explicit settings.',
     order: (position: number) => `Check ${position} of 4 in the fixed order used for ties.`,
+    liveQuestion:
+      'This response shows a setting the charity could ask about. It is not evidence that this is among the website’s biggest risks.',
   },
 
   report: {
@@ -211,6 +240,8 @@ export const en = {
     charity: 'Charity',
     exampleUrl: 'Address entered',
     activities: 'Website activities',
+    siteControl: 'Who can change the website',
+    fixtureAssumesControl: 'This fictional example assumes the charity controls the site.',
     scenario: 'Observations from',
     liveSource: 'Live check',
     samplePage: 'Page',
@@ -218,7 +249,9 @@ export const en = {
     limitations: 'Limitations',
     limitationsLive: [
       'The observations describe one response at one moment. Another page, host or time may differ.',
-      'Response headers alone cannot establish a vulnerability, a breach or a data leak.',
+      'Selecting an activity does not mean a donation, sign-up, or payment page was checked.',
+      'Response headers alone cannot establish a vulnerability, a breach or a data leak. A missing header is not, by itself, an exploitable flaw.',
+      'When the charity does not control the website, these are the platform’s settings.',
       'Other hosts, certificate renewal and policies set inside the page HTML were not examined.',
       'Technical severity is qualitative. This report gives no score or overall grade.',
     ],
@@ -232,7 +265,12 @@ export const en = {
     priorities: 'Priorities',
     noPriorities: 'No observation here needs follow-up.',
     request: 'Request to the provider',
+    note: 'Note',
     requestHint: 'Edit freely. Your text is saved separately for these observations and this language.',
+    noteHint: 'Edit freely. This is not a request to change the website. Your text is saved separately for this check and this language.',
+    noteLabel: 'Note text',
+    copyNote: 'Copy note',
+    copiedNote: 'Note copied, with the scope line.',
     requestLabel: 'Request text',
     copy: 'Copy request',
     print: 'Print report',
@@ -249,13 +287,21 @@ export const en = {
   request: {
     greeting: 'Dear website provider,',
     introLive:
-      'We are reviewing our website settings as a training exercise. The observations below come from one check of our site’s response headers, which cannot show everything, so please treat them as questions rather than findings.',
+      'We checked one response from our website as a training exercise. The questions below are the only ones this response supports. Their order is not a ranking of the website’s biggest risks, and this check did not look at donation, sign-up, or payment pages. Please treat them as questions rather than findings.',
+    platform:
+      'These headers belong to the platform that hosts the checked page. The charity cannot change them. This check does not show that the platform is unsafe. It describes one response, and a missing header is not by itself a flaw.',
+    unsure:
+      'Please confirm who can change this website before anyone is asked to change its settings. If the charity cannot change it, these are the platform’s settings and there is no letter to send. This check does not show that the site is unsafe.',
     introFixture:
       'We are reviewing our website settings as a training exercise. The observations below come from a fictional sample, not from a live check of our site, so please treat them as questions rather than findings.',
     item: (n: number, header: string) => `${n}. ${header}`,
     none: 'No observation here needs follow-up. Could you let us know if anything should be reviewed after future changes?',
+    noneLive:
+      'This response does not support a change request. The observations are a record of one response, not a list of flaws.',
     testing: (activities: string) =>
       `Before changing anything, could you tell us about any cost, timing or testing involved? We would like someone to test our ${activities} pages after any change.`,
+    testingLive:
+      'This check looked at one address only. Before changing anything, could you tell us about any cost, timing, or testing involved?',
     closing: 'Thank you,',
   },
 
@@ -264,7 +310,10 @@ export const en = {
     simulated: 'Actions, dates and evidence on this screen are entered by hand for the demonstration and kept in this browser.',
     actionsHeading: 'Actions',
     noActions: 'No observation here needs follow-up, so there are no actions to track.',
+    platformNone: 'There is no change for the charity to assign. These settings belong to the platform.',
+    unsureNone: 'There is no change to assign until someone confirms who can change this website.',
     priorityTag: (n: number) => `Priority ${n}`,
+    questionTag: 'Question',
     otherTag: 'Outside shortlist',
     status: 'Status',
     statuses: {

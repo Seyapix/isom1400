@@ -19,8 +19,19 @@ export function FindingDetail({ ranked, caseRecord }: { ranked: RankedFinding; c
   const { d, lang } = useWorkspace();
   const { finding } = ranked;
   const text = finding.text[lang];
+  const live = finding.id.startsWith('live-');
+  const canAsk = !live || caseRecord.siteControl === 'charity';
   const activities =
-    finding.activities.length > 0 ? d.list(finding.activities.map((a) => d.activities[a])) : d.findings.siteWide;
+    finding.activities.length > 0
+      ? d.list(finding.activities.map((a) => d.activities[a]))
+      : live
+        ? d.findings.liveNotActivity
+        : d.findings.siteWide;
+  const request = canAsk
+    ? text.request
+    : caseRecord.siteControl === 'platform'
+      ? d.findings.platformRequest
+      : d.findings.unsureRequest;
 
   const items = [
     { term: d.findings.fields.pageContext, value: text.pageContext },
@@ -32,9 +43,9 @@ export function FindingDetail({ ranked, caseRecord }: { ranked: RankedFinding; c
     { term: d.findings.fields.meaning, value: text.meaning },
     { term: d.findings.fields.activities, value: activities },
     { term: d.findings.fields.rationale, value: text.rationale },
-    { term: d.findings.fields.request, value: text.request },
+    { term: d.findings.fields.request, value: request },
   ];
-  if (finding.reviewRequired) {
+  if (finding.reviewRequired && canAsk) {
     items.push(
       { term: d.findings.fields.owner, value: d.owners[caseRecord.changeManager] },
       { term: d.findings.fields.nextStep, value: d.nextSteps[nextStepKey(caseRecord.support)] },

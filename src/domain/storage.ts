@@ -8,14 +8,15 @@ import {
   LIVE_SCENARIO_ID,
   RECHECK_OUTCOMES,
   SCREENS,
+  SITE_CONTROLS,
   SUPPORT_LEVELS,
 } from './types.ts';
-import type { ActionRecord, AppState, CaseRecord, HandoverRecord, Lang, LiveCheck, ObservedHeaders, ScenarioId } from './types.ts';
+import type { ActionRecord, AppState, CaseRecord, HandoverRecord, Lang, LiveCheck, ObservedHeaders, ScenarioId, SiteControl } from './types.ts';
 import { NAME_MAX, TEXT_MAX, validateExampleUrl } from './validation.ts';
 
 export const STORAGE_PREFIX = 'isom1400.charityWorkspace';
 export const STORAGE_KEY = `${STORAGE_PREFIX}.state`;
-export const STATE_VERSION = 2;
+export const STATE_VERSION = 3;
 const SCENARIO_IDS: readonly ScenarioId[] = [...FIXTURE_IDS, LIVE_SCENARIO_ID];
 const HEADER_MAX = 4000;
 const PROBE_KEY = `${STORAGE_PREFIX}.probe`;
@@ -92,6 +93,7 @@ function readCase(v: unknown, version: number): CaseRecord | null | undefined {
     new Set(activities).size === activities.length &&
     oneOf(CHANGE_MANAGERS, v.changeManager) &&
     oneOf(SUPPORT_LEVELS, v.support) &&
+    (v.siteControl === undefined || oneOf(SITE_CONTROLS, v.siteControl)) &&
     v.acknowledged === true &&
     (v.scenarioId === null || oneOf(SCENARIO_IDS, v.scenarioId));
   if (!ok) return undefined;
@@ -105,6 +107,7 @@ function readCase(v: unknown, version: number): CaseRecord | null | undefined {
     exampleUrl: v.exampleUrl as string,
     language: v.language as Lang,
     activities: [...(activities as CaseRecord['activities'])],
+    siteControl: (v.siteControl === undefined ? 'unsure' : v.siteControl) as SiteControl,
     changeManager: v.changeManager as CaseRecord['changeManager'],
     support: v.support as CaseRecord['support'],
     acknowledged: true,
@@ -162,7 +165,7 @@ export function parseState(raw: string): ParseResult {
     return { ok: false, reason: 'json' };
   }
   if (!isObj(data)) return { ok: false, reason: 'shape' };
-  if (data.version !== STATE_VERSION && data.version !== 1) return { ok: false, reason: 'version' };
+  if (data.version !== 1 && data.version !== 2 && data.version !== STATE_VERSION) return { ok: false, reason: 'version' };
   const caseRecord = readCase(data.case, data.version);
   if (caseRecord === undefined || !oneOf(LANGS, data.uiLanguage) || !oneOf(SCREENS, data.screen)) {
     return { ok: false, reason: 'shape' };

@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { SCENARIOS } from '../domain/fixtures.ts';
 import { scenarioForCase } from '../domain/live.ts';
 import { requestLiveCheck } from '../domain/liveClient.ts';
-import { prioritise } from '../domain/priority.ts';
-import { reasonLines } from '../domain/report.ts';
+import { presentedFindings, reasonLines } from '../domain/report.ts';
 import { CHECK_HEADERS, LIVE_SCENARIO_ID } from '../domain/types.ts';
 import type { CaseRecord, LiveCheckError, ScenarioId } from '../domain/types.ts';
 import { formatDateTime } from '../i18n/index.ts';
@@ -28,6 +27,7 @@ export function CaseSummary({ caseRecord }: { caseRecord: CaseRecord }) {
             ),
           },
           { term: d.findings.activities, value: d.list(caseRecord.activities.map((a) => d.activities[a])) },
+          { term: d.findings.siteControl, value: d.siteControl[caseRecord.siteControl] },
           { term: d.findings.owner, value: d.changeManagers[caseRecord.changeManager] },
           { term: d.findings.support, value: d.support[caseRecord.support] },
         ]}
@@ -114,7 +114,8 @@ export function FindingsScreen() {
   const { d, lang, state, update, go } = useWorkspace();
   const caseRecord = state.case!;
   const scenario = scenarioForCase(caseRecord);
-  const result = scenario ? prioritise(scenario.findings, caseRecord.activities) : null;
+  const result = scenario ? presentedFindings(caseRecord, scenario) : null;
+  const live = scenario?.source === 'live';
 
   const choose = (id: ScenarioId) =>
     update((prev) => ({ ...prev, case: prev.case && { ...prev.case, scenarioId: id } }));
@@ -195,17 +196,25 @@ export function FindingsScreen() {
         </div>
       ) : (
         <>
-          <Section id="priorities" title={d.findings.prioritiesHeading}>
-            <p className="text-muted -mt-1 mb-4">{d.findings.prioritiesIntro}</p>
+          <Section id="priorities" title={live ? d.findings.questionsHeading : d.findings.prioritiesHeading}>
+            <p className="text-muted -mt-1 mb-4">{live ? d.findings.questionsIntro : d.findings.prioritiesIntro}</p>
             {result.priorities.length === 0 ? (
-              <EmptyState>{d.findings.noPriorities}</EmptyState>
+              <EmptyState>
+                {live
+                  ? caseRecord.siteControl === 'platform'
+                    ? d.findings.platformNone
+                    : caseRecord.siteControl === 'unsure'
+                      ? d.findings.unsureNone
+                      : d.findings.noLiveQuestions
+                  : d.findings.noPriorities}
+              </EmptyState>
             ) : (
               <ol className="space-y-4" data-priority-list>
                 {result.priorities.map((ranked, index) => {
                   const text = ranked.finding.text[lang];
                   return (
                     <li key={ranked.finding.id} className="panel" data-finding-id={ranked.finding.id}>
-                      <p className="label">{d.findings.priorityLabel(index + 1)}</p>
+                      <p className="label">{live ? d.findings.questionLabel : d.findings.priorityLabel(index + 1)}</p>
                       <h3 className="mt-1 text-lg">{CHECK_HEADERS[ranked.finding.check]}</h3>
                       <p className="mt-1">
                         <span className="status">{d.configuration[ranked.finding.configuration]}</span>

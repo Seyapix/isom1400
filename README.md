@@ -37,11 +37,11 @@ Tested with Node 24.22.3 and pnpm 11.28.5 on macOS.
 1. Run `pnpm build && pnpm preview` and open http://127.0.0.1:4173.
 2. **Intake.** Fill in the form:
    - a charity name and the website address you have permission to check;
-   - keep English, tick *Donations*, and choose *A website provider or agency* and *No regular technical help*;
+   - keep English, choose that the charity can change the website, tick *Donations*, and choose *A website provider or agency* and *No regular technical help*;
    - accept the acknowledgement.
 3. **Findings.** Choose **Check this address**.
    - The panel shows when the check ran, the final address after redirects, the HTTP status and the number of redirects.
-   - The priorities below come from that website's own headers. Expand one to see the literal header line and its limits.
+   - If the charity can change the site, the questions below come from that website's own headers. Their order is not a ranking of its biggest risks. Expand one to see the literal header line and its limits. A platform page explains the settings and does not draft a change letter.
    - To compare, choose *Harbour Lantern Giving Circle*, a fictional example, then switch back to *Live check of this address*.
 4. Switch to **繁體中文**. The order and IDs stay the same.
 5. **Report.** The scope gives the checked address and the time of the check. Edit the request, choose *Copy request* (the copied text starts with the scope line), then *Print report*.
@@ -53,8 +53,9 @@ Tested with Node 24.22.3 and pnpm 11.28.5 on macOS.
 
 ## Why the intake asks what it asks
 
-- **What the website is used for** decides which observations come first. For example, a donation page ranks a payment-related Referrer-Policy above a site-wide setting.
-- **Who makes changes** becomes the owner of each action and in the handover.
+- **Can the charity change this website** decides whether a live check drafts a change request. The answer is not guessed from the address. A platform page, or an unknown host, is explained as someone else's settings. No letter says "our website", and no follow-up action is created.
+- **What the website is used for** re-ranks a fictional example. For example, a donation page ranks a payment-related Referrer-Policy above a site-wide setting. It does not change which page a live check fetches, and a live observation is never described as specific to the selected activity.
+- **Who makes changes** becomes the owner of each action and in the handover when the charity can change the site. It does not apply to a platform's headers.
 - **Technical support** changes the next step: ask the provider, use the contract, or review in-house. It never changes severity.
 
 ## The header check
@@ -89,20 +90,20 @@ Responses are `no-store` and `nosniff`. Failures return one of these codes: `bad
 
 [`src/domain/live.ts`](src/domain/live.ts) turns the headers into the same four observations the fictional examples use. The bilingual text is in [`src/domain/liveText.ts`](src/domain/liveText.ts).
 
-| Header | Expected | To review | Absent |
+| Header | Expected | Worth a question, if the charity can change the site | Recorded, not a question |
 | --- | --- | --- | --- |
-| HSTS | `max-age` of at least one day on an HTTPS final address | Final address over plain HTTP, `max-age=0`, under one day, or no single valid `max-age` | No header on HTTPS |
-| CSP | Enforced policy whose `script-src` (or `default-src`) avoids `*`, `http:`, `https:`, `data:`, `blob:`, and `'unsafe-inline'` without a nonce or hash | Report-only only, or an enforced policy without such a script rule | Neither header |
-| X-Content-Type-Options | `nosniff` | Any other value | No header |
-| Referrer-Policy | Last recognised token is a limiting policy | `unsafe-url`, `no-referrer-when-downgrade`, or no recognised token | No header (browser default applies) |
+| HSTS | One valid `max-age` of at least one day on an HTTPS final address. The sentence states that duration: 31536000 seconds is one year, not "at least a day". | Final address over plain HTTP, `max-age=0`, under one day, missing on HTTPS, or no single valid `max-age` | — |
+| CSP | Enforced policy whose `script-src` (or `default-src`) avoids `*`, `http:`, `https:`, `data:`, `blob:`, and `'unsafe-inline'` without a nonce or hash | No policy; an enforced policy whose script rule is broad; a report-only policy that does restrict scripts. Reports are mentioned only when `report-uri` or `report-to` is present, and the check never claims anyone reads them. | A policy with no script directive, including one that only lists who may embed the page. It is not called a permissive script policy. |
+| X-Content-Type-Options | `nosniff` | Any other value | No header. Adding `nosniff` can be sensible hardening. Its absence is not an exploitable flaw. |
+| Referrer-Policy | Last recognised token is a limiting policy | `unsafe-url` or `no-referrer-when-downgrade` | No header, or a value browsers ignore. Current browsers already use `strict-origin-when-cross-origin`. |
 
-The evidence shown is the literal header line. Every observation keeps its limits: one response cannot show other hosts, certificate renewal, or a policy set inside the page HTML.
+The evidence shown is the literal header line. Every observation keeps its limits: one response cannot show other hosts, certificate renewal, or a policy set inside the page HTML. Selecting an activity does not mean that activity's pages were checked.
 
 If the intake address changes, the stored result is cleared, along with the actions, drafts and handover recorded against it. Results from the fictional examples are kept.
 
 ## How priorities are chosen
 
-[`src/domain/priority.ts`](src/domain/priority.ts) is a pure function. Observations with nothing to review are excluded. The rest are sorted by four keys in turn:
+[`src/domain/priority.ts`](src/domain/priority.ts) is a pure function. It ranks the fictional examples. Observations with nothing to review are excluded. The rest are sorted by four keys in turn:
 
 1. Whether the observation directly affects a selected activity.
 2. An explicit setting to review before an absent header.
@@ -111,10 +112,12 @@ If the intake address changes, the stored result is cleared, along with the acti
 
 At most three are shown. Support level changes the owner and next step but never the technical severity. Severity is qualitative and can be *undetermined from this evidence*. There are no scores or grades.
 
+A live check uses that shortlist only when the charity can change the website, and only for observations marked as questions. Live observations are not tagged with an activity, so the selected activities do not decide the order, and the screen calls them questions rather than priorities. The order is not a judgement of the website's biggest risks. When the page is a platform the charity does not control, or when that is unknown, the check lists the four observations and does not number questions, draft a change letter, or create follow-up actions.
+
 ## Browser storage
 
 The app keeps one versioned, validated record in `localStorage` under `isom1400.charityWorkspace.state`. The key keeps its original name, so cases saved before the rename are not lost.
-- Version 2 adds the stored header-check result, and version 1 records load with no result.
+- Version 3 records who can change the website. A version 2 case loads with that answer set to *Not sure*, so it does not gain a letter that says "our website". Version 1 records load with no header-check result.
 - Actions are keyed by case, observation source and finding; drafts by case, source and language.
 - A stored result is kept only if it matches the current intake address.
 - Unreadable or invalid data is set aside with a visible notice. If storage is unavailable, the session runs in memory and says so.
@@ -150,17 +153,17 @@ A static host has no header-check endpoint, so on such a host the page reports t
 ## Verification results (15 November 2026)
 
 - **Type check and build:** `pnpm build` passed. The output is `index.html`, one JavaScript file and one CSS file, with no inline script or style. No server code is bundled into the page.
-- **Unit tests:** `pnpm test` passed 51 of 51. They cover:
+- **Unit tests:** `pnpm test` passed 54 of 54. They cover:
   - priority ranking, URL validation and the deferral and recheck rules;
-  - storage round-trips, the version 1 to version 2 migration, rejection of malformed results, and dropping a result for a different address;
-  - the classification of each header state, and the use of live observations in priorities;
+  - storage round-trips, the version 1 to version 3 migration, a version 2 case loading as *Not sure*, rejection of malformed results, and dropping a result for a different address;
+  - the classification of each header state, including a one-year HSTS value and a report-only policy that only lists who may embed the page, and the use of live observations in questions;
   - the client accepting only well-formed results;
   - the server guards, tested against real local servers: blocked address ranges, blocked literal IP forms (decimal, hex, IPv6), refusal of `localhost` at lookup, the five returned headers, the 4,000-character cap, re-validated redirects, the redirect limit, timeouts, method, origin, content type and body-size checks, and the two-check limit;
   - matching dictionaries, full translation of fixture and live text, the exact acknowledgement wording, and the absence of the sample banner.
-- **Browser checks:** `pnpm test:browser` passed 25 of 25:
+- **Browser checks:** `pnpm test:browser` passed 26 of 26:
   - Every header in the table above was observed in both modes. The preview endpoint refused `GET` (405), a foreign `Origin` or cross-site fetch (403), `text/plain` (415), and `127.0.0.1`, `localhost`, `[::1]`, `169.254.169.254` and `192.168.0.1` (403, `blockedAddress`). The dev server's endpoint refuses loopback too.
   - The *Parapet* wordmark and tab title, with no *ISOM1400* or *Sample data* text anywhere. The dark bar and step bar have identical heights in English and Chinese at 1280px and 360px, and no step label overflows.
-  - In the live flow, the intake address is posted to the endpoint, and the result selects *Live check of this address* and ranks CSP, Referrer-Policy, then HSTS for donations. It also shows the literal header line, the final address and the redirect count. The report and request describe the check, and the live follow-up actions save and survive a reload. Timeout and unavailable errors are announced while the last result is kept. Changing the address clears the result and its live actions, and a real in-page check of `http://127.0.0.1/` is refused.
+  - In the live flow, the intake address is posted to the endpoint, and the result selects *Live check of this address*. When the charity can change the site, the mocked headers list CSP, Referrer-Policy, then HSTS as questions, without describing them as donation findings. It also shows the literal header line, the final address and the redirect count. The report describes one response, and the live follow-up actions save and survive a reload. Choosing the platform answer removes the questions and the change letter. Timeout and unavailable errors are announced while the last result is kept. Changing the address clears the result and its live actions, and a real in-page check of `http://127.0.0.1/` is refused.
   - The earlier walkthrough still passes: intake validation, the fictional examples, re-ranking, language switching, copy and print in both languages, follow-up rules, persistence, clearing, keyboard-only use, the 360px layout, the palette, and no images, CSP violations or page errors.
 - **Real websites:** run with network access:
   - `http://example.com` stayed on plain HTTP, so HSTS was flagged, and it sent none of the other three headers.

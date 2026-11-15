@@ -288,6 +288,7 @@ async function main() {
     await step('intake: credentials and malformed URLs are rejected; markup is kept as text', async () => {
       await page.fill('#intake-displayName', '<b>Harbour</b> Lantern & Co');
       await page.fill('#intake-exampleUrl', 'https://user:secret@donate.example.org');
+      await page.check('#intake-siteControl-0');
       await page.check('#intake-activities-0');
       await page.check('#intake-changeManager-0');
       await page.check('#intake-support-0');
@@ -540,7 +541,9 @@ async function main() {
       await navButton(page, 'Report').click();
       assert.match(await text(page), /Four response headers from one request to https:\/\/www\.donate\.example\.org\/give/);
       assert.match(await text(page), /Live check ·/);
-      assert.match(await page.locator('#request-draft').inputValue(), /one check of our site’s response headers/);
+      assert.match(await page.locator('#request-draft').inputValue(), /one response from our website/);
+      assert.match(await page.locator('#request-draft').inputValue(), /not a ranking/);
+      assert.doesNotMatch(await page.locator('#request-draft').inputValue(), /Donations pages/);
       assert.doesNotMatch(await page.locator('#request-draft').inputValue(), /EDITED-EN/, 'live draft is separate from the sample draft');
 
       await navButton(page, 'Follow-up').click();
@@ -560,6 +563,27 @@ async function main() {
       assert.match(await page.locator('[data-live-check]').innerText(), /檢查時間/);
       assert.match(await text(page), /此地址的即時檢查/);
       await page.getByRole('button', { name: 'English' }).click();
+    });
+
+    await step('live check: a platform answer explains the settings and drafts no change letter', async () => {
+      await navButton(page, 'Intake').click();
+      await page.check('#intake-siteControl-1');
+      await page.getByRole('button', { name: 'Save intake' }).click();
+      await navButton(page, 'Findings').click();
+      assert.equal(await page.locator('[data-priority-list]').count(), 0);
+      assert.match(await text(page), /platform/);
+      await navButton(page, 'Report').click();
+      const note = await page.locator('#request-draft').inputValue();
+      assert.match(note, /belong to the platform/);
+      assert.doesNotMatch(note, /our website|Dear website provider/);
+      await navButton(page, 'Follow-up').click();
+      assert.match(await text(page), /belong to the platform/);
+      assert.equal(await page.locator('[data-outstanding] > li').count(), 0);
+      await navButton(page, 'Intake').click();
+      await page.check('#intake-siteControl-0');
+      await page.getByRole('button', { name: 'Save intake' }).click();
+      await navButton(page, 'Findings').click();
+      assert.deepEqual(await priorityIds(page), ['live-csp', 'live-referrer', 'live-hsts']);
     });
 
     await step('live check: endpoint errors are announced and keep the last good result', async () => {
@@ -639,6 +663,8 @@ async function main() {
       await page.keyboard.type('Keyboard Test Charity');
       await page.keyboard.press('Tab');
       await page.keyboard.type('https://keyboard.example');
+      await tabUntil(page, () => document.activeElement.id === 'intake-siteControl-0');
+      await page.keyboard.press('Space');
       await tabUntil(page, () => document.activeElement.id === 'intake-activities-1');
       await page.keyboard.press('Space');
       await tabUntil(page, () => document.activeElement.name === 'intake-changeManager');

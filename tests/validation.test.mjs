@@ -33,6 +33,7 @@ const goodIntake = {
   exampleUrl: 'https://charity.example',
   language: 'en',
   activities: ['donations'],
+  siteControl: 'charity',
   changeManager: 'provider',
   support: 'none',
   acknowledged: true,
@@ -41,10 +42,19 @@ const goodIntake = {
 test('intake accepts markup-like names as text and requires every choice and the acknowledgement', () => {
   assert.deepEqual(validateIntake(goodIntake), {});
   assert.deepEqual(
-    validateIntake({ ...goodIntake, displayName: ' ', activities: [], changeManager: '', support: '', acknowledged: false }),
+    validateIntake({
+      ...goodIntake,
+      displayName: ' ',
+      activities: [],
+      siteControl: '',
+      changeManager: '',
+      support: '',
+      acknowledged: false,
+    }),
     {
       displayName: 'nameRequired',
       activities: 'activitiesRequired',
+      siteControl: 'siteControlRequired',
       changeManager: 'changeManagerRequired',
       support: 'supportRequired',
       acknowledged: 'acknowledgementRequired',
