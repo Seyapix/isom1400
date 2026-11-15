@@ -133,7 +133,7 @@ export function FindingsScreen() {
         <div className="mt-3 grid gap-2">
           <label
             htmlFor={`scenario-${LIVE_SCENARIO_ID}`}
-            className={`choice panel py-3 ${
+            className={`choice panel px-5 py-3 ${
               !caseRecord.liveCheck
                 ? 'cursor-not-allowed text-muted'
                 : caseRecord.scenarioId === LIVE_SCENARIO_ID
@@ -166,7 +166,7 @@ export function FindingsScreen() {
               <label
                 key={s.id}
                 htmlFor={`scenario-${s.id}`}
-                className={`choice panel cursor-pointer py-3 ${checked ? 'border-teal bg-wash' : 'hover:border-muted'}`}
+                className={`choice panel cursor-pointer px-5 py-3 ${checked ? 'border-teal bg-wash' : 'hover:border-muted'}`}
               >
                 <input
                   id={`scenario-${s.id}`}
