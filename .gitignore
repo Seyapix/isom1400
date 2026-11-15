@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.pnpm-store/
+test-results/
+.cursor/
+generated_images/
+charity-website-security.plan.md

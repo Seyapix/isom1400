@@ -1,0 +1,14 @@
+# Example production headers for an HTTPS static host that reads a `_headers`
+# file (for example Netlify or Cloudflare Pages). Copy it into `dist/` after
+# `pnpm build`. This prototype is not deployed; see README.md before using it.
+#
+# HSTS starts at 300 seconds (five minutes) so a mistake expires quickly.
+# includeSubDomains and preload are deliberately left out. Increase max-age only
+# after confirming every host serves valid HTTPS and certificate renewal is
+# automated.
+
+/*
+  Strict-Transport-Security: max-age=300
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'none'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
